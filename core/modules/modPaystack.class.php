@@ -61,7 +61,7 @@ class modPaystack extends DolibarrModules
         
         // Module parts - hooks for payment integration
         $this->module_parts = array(
-            'hooks' => array('newpayment')  // Hook into payment page
+            'hooks' => array('newpayment', 'paystack')  // Hook into payment page
         );
         
         // Data directories
