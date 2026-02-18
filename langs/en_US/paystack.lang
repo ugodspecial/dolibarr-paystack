@@ -1,0 +1,35 @@
+# Dolibarr language file - Source file is en_US - paystack
+CHARSET=UTF-8
+
+# Module
+Module500000Name=Paystack
+Module500000Desc=Paystack Online Payment Gateway - Accept payments via cards, bank transfers, USSD, and mobile money
+
+# Admin Setup
+PaystackSetup=Paystack Setup
+PaystackSetupDesc=Configure your Paystack payment gateway settings
+PaystackPublicKey=Public Key
+PaystackPublicKeyDesc=Your Paystack public key (starts with pk_)
+PaystackSecretKey=Secret Key
+PaystackSecretKeyDesc=Your Paystack secret key (starts with sk_) - Keep this confidential
+PaystackCurrency=Currency
+PaystackCurrencyDesc=Select the currency for transactions
+PaystackTestMode=Test Mode
+PaystackTestModeDesc=Enable this to use test API keys for testing
+PaystackGetKeys=How to get your Paystack API Keys
+PaystackSignup=Sign up or log in to your account at
+PaystackLogin=Log in to your Paystack Dashboard
+PaystackGoSettings=Go to Settings > API Keys & Webhooks
+PaystackCopyKeys=Copy your Public Key and Secret Key
+PaystackTestKeys=Using Test Keys
+PaystackTestKeysDesc=In test mode, use test API keys (pk_test_xxx and sk_test_xxx). In live mode, use live API keys (pk_live_xxx and sk_live_xxx).
+
+# Payment
+PayWithPaystack=Pay with Paystack
+PaystackNotConfigured=Paystack is not properly configured. Please contact the administrator.
+PaystackInitializationFailed=Payment initialization failed
+PaystackAPIError=Paystack API Error
+EmailRequired=Email address is required
+
+# Permissions
+Permission500000=Use Paystack payment gateway
