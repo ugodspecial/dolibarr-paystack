@@ -32,7 +32,7 @@ $this->rights = array();  // Empty - external modules don't need permissions!
 
 // KEPT: Hook registration
 $this->module_parts = array(
-    'hooks' => array('newpayment')
+    'hooks' => array('newpayment', 'paystack')
 );
 ```
 
