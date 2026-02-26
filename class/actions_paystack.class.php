@@ -50,17 +50,18 @@ class ActionsPaystack
      * @param string  $action     Action
      * @return int                0
      */
-    public function getValidPayment($parameters, &$object, &$action)
+    public function getValidPayment(&$parameters, &$object, &$action)
     {
         global $conf;
 
         // Only add if module is enabled
         if (!empty($conf->paystack->enabled)) {
-            // Register paystack in the validpaymentmethod array
-            if (isset($parameters['validpaymentmethod'])) {
-                $parameters['validpaymentmethod']['paystack'] = 'paystack';
-            }
-            
+            // Register paystack in the validpaymentmethod array.
+            // We modify $parameters (by reference) AND set $this->results because
+            // Dolibarr HookManager reads from both depending on version.
+            $parameters['validpaymentmethod']['paystack'] = 'paystack';
+            $this->results['validpaymentmethod']['paystack'] = 'paystack';
+
             dol_syslog("Paystack: Registered as valid payment method", LOG_DEBUG);
         }
 
@@ -424,28 +425,48 @@ class ActionsPaystack
             
             if ($http_code == 200) {
                 $result = json_decode($response, true);
-                
-                if ($result['status'] === true && 
-                    isset($result['data']['status']) && 
+
+                if ($result['status'] === true &&
+                    isset($result['data']['status']) &&
                     $result['data']['status'] === 'success') {
-                    
+
                     // Payment verified successfully!
                     $amount = $result['data']['amount'] / 100;
                     $currency = isset($result['data']['currency']) ? $result['data']['currency'] : 'NGN';
-                    
+
                     dol_syslog("Paystack: Payment SUCCESSFUL - Ref: ".$reference.", Amount: ".$amount." ".$currency, LOG_INFO);
-                    
+
                     // Set result
                     $this->results['ispaymentok'] = true;
-                    
+
+                    // CRITICAL: Restore FULLTAG from URL if the session was lost during
+                    // the external redirect to Paystack (cross-domain SameSite cookie issue).
+                    // paymentok.php requires FULLTAG in session to record the payment.
+                    $fulltag_from_url = GETPOST('fulltag', 'alpha');
+                    if (!empty($fulltag_from_url)) {
+                        if (empty($_SESSION['FULLTAG'])) {
+                            $_SESSION['FULLTAG'] = $fulltag_from_url;
+                        }
+                        if (empty($_SESSION['fulltag'])) {
+                            $_SESSION['fulltag'] = $fulltag_from_url;
+                        }
+                        if (empty($_SESSION['FULLTAGpaystack'])) {
+                            $_SESSION['FULLTAGpaystack'] = $fulltag_from_url;
+                        }
+                        dol_syslog("Paystack: FULLTAG restored from URL - ".$fulltag_from_url, LOG_INFO);
+                    }
+
                     // Update session variables - CRITICAL for Dolibarr
                     $_SESSION['TRANSACTIONID'] = $reference;
                     $_SESSION['FinalPaymentAmt'] = $amount;
                     $_SESSION['currencyCodeType'] = $currency;
+                    if (empty($_SESSION['paymentmethod'])) {
+                        $_SESSION['paymentmethod'] = 'paystack';
+                    }
                     $_SESSION['PAYMENTMETHOD'] = 'paystack';
-                    
-                    dol_syslog("Paystack: Session variables set - Payment will be recorded", LOG_INFO);
-                    
+
+                    dol_syslog("Paystack: Session variables set - FULLTAG=".(!empty($_SESSION['FULLTAG']) ? $_SESSION['FULLTAG'] : 'MISSING'), LOG_INFO);
+
                     return 0;
                 } else {
                     $status = isset($result['data']['status']) ? $result['data']['status'] : 'unknown';
