@@ -439,21 +439,36 @@ class ActionsPaystack
                     // Set result
                     $this->results['ispaymentok'] = true;
 
-                    // CRITICAL: Restore FULLTAG from URL if the session was lost during
-                    // the external redirect to Paystack (cross-domain SameSite cookie issue).
-                    // paymentok.php requires FULLTAG in session to record the payment.
-                    $fulltag_from_url = GETPOST('fulltag', 'alpha');
-                    if (!empty($fulltag_from_url)) {
-                        if (empty($_SESSION['FULLTAG'])) {
+                    // CRITICAL: Restore FULLTAG from Paystack metadata (most reliable source).
+                    // The callback URL uses URL-safe tag (= replaced with -), so we cannot
+                    // use the URL param directly. Instead we read the original tag (with = signs)
+                    // that we stored in metadata during doPayment. This survives cross-domain
+                    // redirects that may destroy the PHP session.
+                    $original_fulltag = '';
+                    if (isset($result['data']['metadata']['custom_fields']) && is_array($result['data']['metadata']['custom_fields'])) {
+                        foreach ($result['data']['metadata']['custom_fields'] as $field) {
+                            if (isset($field['variable_name']) && $field['variable_name'] === 'tag' && !empty($field['value'])) {
+                                $original_fulltag = $field['value'];
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!empty($original_fulltag)) {
+                        // Use the original tag (with = signs) that Dolibarr expects
+                        $_SESSION['FULLTAG'] = $original_fulltag;
+                        $_SESSION['fulltag'] = $original_fulltag;
+                        $_SESSION['FULLTAGpaystack'] = $original_fulltag;
+                        dol_syslog("Paystack: FULLTAG restored from Paystack metadata - ".$original_fulltag, LOG_INFO);
+                    } else {
+                        // Fallback: use URL param if metadata unavailable (may have wrong format)
+                        $fulltag_from_url = GETPOST('fulltag', 'alpha');
+                        if (!empty($fulltag_from_url) && empty($_SESSION['FULLTAG'])) {
                             $_SESSION['FULLTAG'] = $fulltag_from_url;
-                        }
-                        if (empty($_SESSION['fulltag'])) {
                             $_SESSION['fulltag'] = $fulltag_from_url;
-                        }
-                        if (empty($_SESSION['FULLTAGpaystack'])) {
                             $_SESSION['FULLTAGpaystack'] = $fulltag_from_url;
+                            dol_syslog("Paystack: FULLTAG restored from URL (fallback) - ".$fulltag_from_url, LOG_WARNING);
                         }
-                        dol_syslog("Paystack: FULLTAG restored from URL - ".$fulltag_from_url, LOG_INFO);
                     }
 
                     // Update session variables - CRITICAL for Dolibarr
